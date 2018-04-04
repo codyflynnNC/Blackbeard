@@ -1,0 +1,13 @@
+typical flow:
+input -> showname and starting point
+
+(input)
+-> get all show information(tvmaze) -> write to db
+
+
+
+now i have some jobs that  poll the db and look for episodes which are NOT downloaded and AVAILABLE to download
+
+-> find 'available' episodes
+-> download those episodes
+

@@ -1,5 +1,6 @@
 import kat as kat
-import airdates as ad
+import tvmaze as tvmaze
+import sqlite3
 
 
 class Pirate:
@@ -8,13 +9,13 @@ class Pirate:
         self.starting_episode = starting_episode
         self.show_id = sid
 
-    def inc_episode(self):
+    def _inc_episode(self):
         """
         :return: the next episode string
         """
         return '{}{}'.format(self.starting_episode[:4], '{:02d}'.format(int(self.starting_episode[4:]) + 1))
 
-    def inc_season(self):
+    def _inc_season(self):
         """
         :return: the next season string
         """
@@ -23,7 +24,7 @@ class Pirate:
     @staticmethod
     def pirate_episode(episode):
         k = kat.KatTorrents(episode)
-        k.
+        pass
 
 
 if __name__ == '__main__':

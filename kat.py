@@ -1,8 +1,5 @@
 import urllib.parse
-import zlib
 import os
-from subprocess import call
-import sys
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 
@@ -63,47 +60,6 @@ class KatTorrents:
             os.startfile(mag)
         except Exception as e:
             raise e
-
-    def choose_torrent(self, paths):
-        """
-        Select a torrent from the printed list and open it
-
-        @type  paths: list
-        @param paths: URL paths for each torrent for querying to get the magnet
-          link
-        """
-        input_given = False
-        while not input_given:
-            try:
-                choice = input('Choose: ')
-                while choice < 0 or choice > self.choices:
-                    print('Not available, choose again.')
-                    choice = input('Choose again: ')
-                input_given = True
-            except NameError:
-                print("Smartass.")
-
-        if choice == self.choices:
-            return
-
-        print('\nGetting magnet link...')
-        url = paths[choice]
-        page_source = zlib.decompress(urlopen(
-            'https://kickass.to/{}'.format(url)).read(), 16 + zlib.MAX_WBITS)
-        magnet_link = page_source[page_source.find('magnet:'):page_source.find(
-            '"', page_source.find('magnet:') + 7)]
-
-        print('Opening torrent...')
-        if os.name == 'nt':  # Widows
-            os.startfile(magnet_link)
-        elif os.uname()[0] == 'Linux':  # Linux
-            call(["xdg-open", magnet_link])
-        elif sys.platform.startswith('darwin'):  # OSX
-            call(['open', magnet_link])
-        else:  # Don't know what you are, hope the OS can open a magnet URL!
-            os.startfile(magnet_link)
-
-        print('')
 
 
 def human_readable_to_bytes(size):
