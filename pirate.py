@@ -1,34 +1,33 @@
 import kat as kat
 import tvmaze as tvmaze
-import sqlite3
+import sqlite as sqlite
+from datetime import datetime, timedelta
 
 
-class Pirate:
-    def __init__(self, show, starting_episode, sid):
-        self.show = show
-        self.starting_episode = starting_episode
-        self.show_id = sid
+class Blackbeard:
+    def __init__(self):
+        self.db_client = sqlite.SQLiteDB()
 
-    def _inc_episode(self):
-        """
-        :return: the next episode string
-        """
-        return '{}{}'.format(self.starting_episode[:4], '{:02d}'.format(int(self.starting_episode[4:]) + 1))
+    def ship(self, show, season, episode):
+        self.db_client.insert_show(show, season, episode)
+        show_episodes = tvmaze.TvMaze(show).get_show_info()['_embedded']['episodes']
+        for e in show_episodes:
+            if e['season'] >= season and e['number'] >= episode:
+                sid = self.db_client.get_show_id(show)
+                a = str(datetime.now() - timedelta(hours=1)) >= '{} {}'.format(e['airdate'], e['airtime'])
+                self.db_client.insert_episode(e['name'], e['season'], e['number'], e['airdate'], e['runtime'], 0, a, sid)
 
-    def _inc_season(self):
-        """
-        :return: the next season string
-        """
-        return 'S{}{}'.format('{:02d}'.format(int(self.starting_episode[1:3]) + 1), self.starting_episode[3:])
-
-    @staticmethod
-    def pirate_episode(episode):
-        k = kat.KatTorrents(episode)
-        pass
+    def plunder(self):
+        episodes = self.db_client.get_episodes_to_download()
+        for e in episodes:
+            search_str = '{} S{:02d}E{:02d}'.format(e[4], e[1], e[2])
+            if kat.KatTorrents(search_str):
+                print('found a torrent and downloaded it!')
+                self.db_client.update_episode(e[3])
+        print(self.db_client.get_episodes())
 
 
 if __name__ == '__main__':
-    p = Pirate('Sneaky Pete', 'S01E01', 3062)
-    next_episode = p.inc_episode()
-    next_season = p.inc_season()
-    print(next_episode)
+    b = Blackbeard()
+    b.ship('The Walking Dead', 1, 1)
+    b.plunder()

@@ -16,7 +16,7 @@ class TvMaze:
             'http': 'one.proxy.att.com:8080'
         }
         q = '/singlesearch/shows?q={}&embed=episodes'.format(urllib.parse.quote_plus(self.show))
-        r = requests.get('{}{}'.format(self.api_root_url, q), proxies=proxies)
+        r = requests.get('{}{}'.format(self.api_root_url, q))
         return json.loads(r.text)
 
 

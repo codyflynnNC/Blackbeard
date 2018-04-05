@@ -20,13 +20,9 @@ class KatTorrents:
         url_base += urllib.parse.quote_plus(search)
         url_sort = '/?field=seeders&sorder=desc'
         self.url = url_base + url_sort
+        self._run_search()
 
-    def download_episode(self, episode):
-        t = self._run_search(episode)
-
-        pass
-
-    def _run_search(self, search_str):
+    def _run_search(self):
         """
         Execute the search against kat.rip using the generated search string in self.url
 
@@ -40,10 +36,10 @@ class KatTorrents:
             a = urlopen(q)
             soup = BeautifulSoup(a, "html.parser").find('table', id='mainSearchTable').find('table', class_='data')
             torrent_files = soup.find_all('tr', class_=['odd', 'even'])
-            return torrent_files
+            if torrent_files:
+                self.download_torrent(self.get_best_torrent(torrent_files))
         except Exception as e:
             print('No torrent found!\n, error: %s' % e)
-            return False
 
     @staticmethod
     def get_best_torrent(t):

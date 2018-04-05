@@ -19,9 +19,11 @@ class SQLiteDB:
         create_shows_table_sql = """
                    CREATE TABLE IF NOT EXISTS shows (
                        id integer PRIMARY KEY,
-                       name text,
-                       date_added timestamp default CURRENT_TIMESTAMP,
-                       active boolean default 1
+                       name text unique,
+                       starting_season integer,
+                       starting_episode integer,
+                       active boolean default 1,
+                       date_added timestamp default CURRENT_TIMESTAMP
                );"""
 
         create_episodes_table_sql = """
@@ -32,8 +34,9 @@ class SQLiteDB:
                        number integer,
                        air_date datetime,
                        runtime decimal,
-                       downloaded boolean,
+                       downloaded boolean default 0,
                        available boolean,
+                       e_uid text unique,
                        show_id integer,
                        FOREIGN KEY (show_id) REFERENCES shows (id)
                );"""
@@ -45,20 +48,60 @@ class SQLiteDB:
             except sqlite3.Error as e:
                 print(e)
 
-    def insert_show(self, show_name):
-        sql = '''INSERT INTO shows(name) VALUES (?)'''
+    def get_show_id(self, name):
+        sql = '''SELECT `id` from `shows` where name=?'''
+        data = (name,)
         with self.conn:
             c = self.conn.cursor()
-            c.execute(sql, show_name)
+            c.execute(sql, data)
+            res = c.fetchone()
+            return res[0]
 
-    def insert_episode(self, name, season, number, air_date, runtime, downloaded, available, show_id):
-        sql = '''INSERT INTO episodes(name, season, number, air_date, runtime, downloaded, available, show_id)
-                 VALUES(?,?,?,?,?,?,?,?)'''
+    def get_episodes_to_download(self):
+        sql = '''SELECT e.name, e.season, e.number, e.e_uid, s.name from episodes AS e
+                 INNER JOIN shows AS s ON e.show_id = s.id
+                 WHERE (e.downloaded=0 AND e.available=1) AND s.active=1'''
 
-        data = (name, season, number, air_date, runtime, downloaded, available, show_id)
         with self.conn:
             c = self.conn.cursor()
             c.execute(sql)
+            res = c.fetchall()
+            return res
+
+    def update_episode(self, e_uid):
+        sql = '''UPDATE episodes SET downloaded=1 WHERE e_uid = ?'''
+        data = (e_uid,)
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(sql, data)
+        except sqlite3.Error as e:
+            raise e
+
+    def insert_show(self, name, starting_season, starting_episode):
+
+        sql = '''INSERT INTO shows(`name`, `starting_season`, `starting_episode`) VALUES (?, ?, ?)'''
+        data = (name, starting_season, starting_episode,)
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(sql, data)
+        except sqlite3.IntegrityError:
+            print('show already exists: {}'.format(name))
+
+    def insert_episode(self, name, season, number, air_date, runtime, downloaded, available, show_id):
+
+        sql = '''INSERT INTO episodes(name, season, number, air_date, runtime, downloaded, available, e_uid, show_id)
+                 VALUES(?,?,?,?,?,?,?,?,?)'''
+
+        e_uid = '{}_{}_S{}E{}'.format(show_id, name, season, number)
+        data = (name, season, number, air_date, runtime, downloaded, available, e_uid, show_id,)
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(sql, data)
+        except sqlite3.IntegrityError:
+            print('episode already exists: {}'.format(name))
 
     def get_shows(self):
         sql = '''SELECT * from shows'''
@@ -66,20 +109,24 @@ class SQLiteDB:
             c = self.conn.cursor()
             c.execute(sql)
             res = c.fetchall()
-            for row in res:
-                print(row)
+            return res
 
-    def get_show_id(self, name):
-        sql = "SELECT id from shows where name=?"
+    def get_episodes(self):
+        sql = '''SELECT * from episodes'''
         with self.conn:
             c = self.conn.cursor()
-            c.execute(sql, name)
-            res = c.fetchone()
-            return res[0]
+            c.execute(sql)
+            res = c.fetchall()
+            return res
 
 
 if __name__ == '__main__':
     sqlite = SQLiteDB()
-    sqlite.insert_show(('test_show4',))
-    sqlite.get_show_id(('test_show',))
+    print(sqlite.get_episodes_to_download())
+    print(sqlite.get_shows())
+    print(sqlite.get_episodes())
+    sqlite.insert_show('hate thy neighbor', 1, 1)
+    s_id = sqlite.get_show_id('hate thy neighbor')
+    sqlite.insert_episode('sweet love', 1, 1, '2018-04-05', 60, 0, 1, s_id)
+    sqlite.get_episodes()
     pass
