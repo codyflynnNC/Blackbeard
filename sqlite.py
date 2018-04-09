@@ -157,6 +157,17 @@ class SQLiteDB:
             res = c.fetchall()
             return res
 
+    def is_episode_exist(self, e_uid):
+        sql = '''SELECT * from episodes WHERE e_uid = ?'''
+        data = (e_uid,)
+        with self.conn:
+            c = self.conn.cursor()
+            c.execute(sql, data)
+            res = c.fetchall()
+            if len(res) > 0:
+                return True
+            return False
+
 
 if __name__ == '__main__':
     sqlite = SQLiteDB()
