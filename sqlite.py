@@ -68,8 +68,37 @@ class SQLiteDB:
             res = c.fetchall()
             return res
 
+    def get_episode_id(self, name):
+        sql = '''SELECT e_uid FROM episodes WHERE name = ?'''
+        data = (name,)
+        with self.conn:
+            c = self.conn.cursor()
+            c.execute(sql, data)
+            res = c.fetchall()
+            return res
+
     def update_episode(self, e_uid):
         sql = '''UPDATE episodes SET downloaded=1 WHERE e_uid = ?'''
+        data = (e_uid,)
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(sql, data)
+        except sqlite3.Error as e:
+            raise e
+
+    def redownload_episode(self, e_uid):
+        sql = ''' UPDATE episodes SET downloaded=0 WHERE e_uid = ?'''
+        data = (e_uid,)
+        try:
+            with self.conn:
+                c = self.conn.cursor()
+                c.execute(sql, data)
+        except sqlite3.Error as e:
+            raise e
+
+    def make_episode_available(self, e_uid):
+        sql = '''UPDATE episodes SET available=1 WHERE e_uid = ?'''
         data = (e_uid,)
         try:
             with self.conn:
@@ -111,7 +140,16 @@ class SQLiteDB:
             res = c.fetchall()
             return res
 
-    def get_episodes(self):
+    def get_episodes_for_show(self, show_id):
+        sql = '''SELECT * from episodes WHERE show_id=?'''
+        data = (show_id,)
+        with self.conn:
+            c = self.conn.cursor()
+            c.execute(sql, data)
+            res = c.fetchall()
+            return res
+
+    def get_all_episodes(self):
         sql = '''SELECT * from episodes'''
         with self.conn:
             c = self.conn.cursor()
@@ -122,11 +160,5 @@ class SQLiteDB:
 
 if __name__ == '__main__':
     sqlite = SQLiteDB()
-    print(sqlite.get_episodes_to_download())
-    print(sqlite.get_shows())
-    print(sqlite.get_episodes())
-    sqlite.insert_show('hate thy neighbor', 1, 1)
-    s_id = sqlite.get_show_id('hate thy neighbor')
-    sqlite.insert_episode('sweet love', 1, 1, '2018-04-05', 60, 0, 1, s_id)
-    sqlite.get_episodes()
+    print(sqlite.get_episodes_for_show(sqlite.get_show_id('Silicon Valley')))
     pass
