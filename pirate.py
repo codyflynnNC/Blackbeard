@@ -12,14 +12,18 @@ class Blackbeard:
         self.db_client = sqlite.SQLiteDB()
 
     def ship(self, show, season, episode):
+        logging.info('shipping a new show: {} S{}E{}'.format(show, season, episode))
+        count = 0
         self.db_client.insert_show(show, season, episode)
         show_episodes = tvmaze.TvMaze(show).get_show_info()['_embedded']['episodes']
         for e in show_episodes:
             if e['season'] >= season and e['number'] >= episode:
+                count += 1
                 sid = self.db_client.get_show_id(show)
                 airtime = '{} {}'.format(e['airdate'], e['airtime'])
                 a = str(datetime.now() - timedelta(hours=1)) >= '{}'.format(airtime)
                 self.db_client.insert_episode(e['name'], e['season'], e['number'], airtime, e['runtime'], 0, a, sid)
+        logging.info('found {} episodes to add for show: {}'.format(count, show))
 
     def update(self):
         shows = self.db_client.get_shows()
@@ -29,11 +33,12 @@ class Blackbeard:
             if diff > 0:
                 # found new episodes that are not in the db, need to insert the new ones
                 for e in show_episodes:
-                    e_uid = '{}_{}_S{}E{}'.format(s[0], e['name'], e['season'], e['number'])
-                    if not self.db_client.is_episode_exist(e_uid):
-                        airtime = '{} {}'.format(e['airdate'], e['airtime'])
-                        a = str(datetime.now() - timedelta(hours=1)) >= '{}'.format(airtime)
-                        self.db_client.insert_episode(e['name'], e['season'], e['number'], airtime, e['runtime'], 0, a, s[0])
+                    if e['season'] >= s[2] and e['number'] >= s[3]:
+                        e_uid = '{}_{}_S{}E{}'.format(s[0], e['name'], e['season'], e['number'])
+                        if not self.db_client.is_episode_exist(e_uid):
+                            airtime = '{} {}'.format(e['airdate'], e['airtime'])
+                            a = str(datetime.now() - timedelta(hours=1)) >= '{}'.format(airtime)
+                            self.db_client.insert_episode(e['name'], e['season'], e['number'], airtime, e['runtime'], 0, a, s[0])
         logging.info('updating available episodes..')
         # e[6] = downloaded, 4=airdate, 5=runtime, 8=e_uid
         episodes = self.db_client.get_all_episodes()
@@ -44,6 +49,22 @@ class Blackbeard:
                 if current_time > '{} {}'.format(e[4], e[5]):
                     logging.info('marking episode {} as available..'.format(e[8]))
                     self.db_client.make_episode_available(e[8])
+
+    def fix_the_fuckup(self):
+        shows = self.db_client.get_shows()
+        for s in shows:
+            episodes = self.db_client.get_episodes_for_show(s[0])
+            for e in episodes:
+                logging.info('checking episode for deletion: {}'.format(e[8]))
+                if e[2] < s[2]:
+                    logging.info('found an episode to delete. deleting: {}'.format(e[8]))
+                    print('found an episode to delete. deleting: {}'.format(e[8]))
+                    self.db_client.delete_episode(e[8])
+                if e[2] == s[2]:
+                    if e[3] < s[3]:
+                        logging.info('found an episode to delete. deleting: {}'.format(e[8]))
+                        print('found an episode to delete. deleting: {}'.format(e[8]))
+                        self.db_client.delete_episode(e[8])
 
     def plunder(self):
         logging.info('checking for plunder')
@@ -60,6 +81,7 @@ class Blackbeard:
 if __name__ == '__main__':
     logging.info('Starting Blackbeard...')
     b = Blackbeard()
+    b.ship('Bar Rescue', 1, 1)
     b.update()
     b.plunder()
     logging.info('Ending Blackbeard')

@@ -168,6 +168,13 @@ class SQLiteDB:
                 return True
             return False
 
+    def delete_episode(self, e_uid):
+        sql = '''DELETE from episodes WHERE e_uid = ?'''
+        data = (e_uid,)
+        with self.conn:
+            c = self.conn.cursor()
+            c.execute(sql, data)
+
 
 if __name__ == '__main__':
     sqlite = SQLiteDB()
